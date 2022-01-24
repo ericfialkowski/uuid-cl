@@ -29,6 +29,8 @@ match _your_ needs.
 
 -n=# Number to generate (default = 1) 
 
+-v=(1|4) Version to generate (default = 4)
+
 -d=true|false Print dashes in uuids (default = true)
 
 -s=string Separator character for multiples (default = newline)
