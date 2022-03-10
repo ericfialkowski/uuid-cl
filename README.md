@@ -1,8 +1,8 @@
 # uuid-cl
 
 ## Description
-Simple little program to use for generating uuids on the 
-command line. 
+Simple little program to use for generating uuids (and now cuids see: https://usecuid.org/) 
+on the command line. 
 
 ## Why?
 I recently discovered https://github.com/veler/DevToys and was hoping 
@@ -15,6 +15,8 @@ think ```uuidgen``` exists. I'll try to update this if/when I get access to a Ma
 Another reason for "why," is a simple "because I can." While we should strive to 
 follow the "dry" principle, don't be afraid to write little tools that
 match _your_ needs.
+
+To further show "why," I expanded the utility to create cuids in addition to uuids.
 
 ## Building
 
@@ -29,8 +31,14 @@ match _your_ needs.
 
 -n=# Number to generate (default = 1) 
 
+-sep=string Separator character for multiples (default = newline)
+
 -v=(1|4) Version to generate (default = 4)
 
 -d=true|false Print dashes in uuids (default = true)
 
--s=string Separator character for multiples (default = newline)
+-cuid=true|false Generate cuids instead of uuids (default = false)
+
+-slug=true|false Generate cuid slugs instead of uuids (default = false)
+
+-crypt=true|false Generate cryptographic-random cuids instead of uuids (default = false)
