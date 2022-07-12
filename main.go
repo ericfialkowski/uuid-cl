@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/jaevor/go-nanoid"
 	"github.com/lucsky/cuid"
 	"os"
 	"strings"
@@ -18,23 +19,30 @@ func main() {
 	var crypt bool
 
 	var genCuid bool
+	var genNanoid bool
 
 	var count int
 	var sep string
+
+	var nanoLength int
 
 	flag.BoolVar(&slug, "slug", false, "Generate a cuid slug instead of uuid")
 	flag.BoolVar(&crypt, "crypt", false, "Generate cryptographic random cuid instead of uuid")
 	flag.BoolVar(&dash, "d", true, "Print uuid with dashes")
 	flag.IntVar(&version, "v", 4, "Version of UUID to generate (1 or 4)")
 	flag.BoolVar(&genCuid, "cuid", false, "Generate cuid instead of uuid")
-	flag.IntVar(&count, "n", 1, "Number of uuids generate")
+	flag.BoolVar(&genNanoid, "nano", false, "Generate nanoid instead of uuid")
+	flag.IntVar(&count, "n", 1, "Number to generate")
 	flag.StringVar(&sep, "sep", "\n", "Separator character to use when generating multiples")
+	flag.IntVar(&nanoLength, "l", 21, "Length of a nanoid to generate")
 	flag.Parse()
 
 	for i := 0; i < count; i++ {
 		var u string
 		if genCuid || slug || crypt {
 			u = createCuid(slug, crypt)
+		} else if genNanoid {
+			u = createNanoid(nanoLength)
 		} else {
 			u = createUUID(dash, version)
 		}
@@ -82,4 +90,14 @@ func createCuid(slug bool, crypt bool) string {
 		}
 	}
 	return c
+}
+
+func createNanoid(length int) string {
+	generator, err := nanoid.Standard(length)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(4)
+	}
+
+	return generator()
 }
