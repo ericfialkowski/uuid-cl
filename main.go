@@ -7,8 +7,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/jaevor/go-nanoid"
 	"github.com/lucsky/cuid"
+	"github.com/oklog/ulid/v2"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -21,6 +23,7 @@ func main() {
 	var genUuid bool
 	var genCuid bool
 	var genNanoid bool
+	var genUlid bool
 
 	var count int
 	var sep string
@@ -31,15 +34,16 @@ func main() {
 	flag.BoolVar(&dash, "d", true, "Print uuid with dashes")
 	flag.IntVar(&version, "v", 4, "Version of UUID to generate (1 or 4)")
 	flag.BoolVar(&genCuid, "cuid", false, "Generate cuid")
-	flag.BoolVar(&slug, "slug", false, "Generate a cuid slug")
-	flag.BoolVar(&crypt, "crypt", false, "Generate cryptographic random cuid")
+	flag.BoolVar(&slug, "slug", false, "Generate a slug (modifier to cuid)")
+	flag.BoolVar(&crypt, "crypt", false, "Generate cryptographic strong id (modifier to cuid and ulid)")
 	flag.BoolVar(&genNanoid, "nano", false, "Generate nanoid")
+	flag.BoolVar(&genUlid, "ulid", false, "Generate ulid")
 	flag.IntVar(&count, "n", 1, "Number to generate")
 	flag.StringVar(&sep, "sep", "\n", "Separator character to use when generating multiples")
 	flag.IntVar(&length, "l", 0, "Length of a unique id to generate")
 	flag.Parse()
 
-	if !(genUuid || genCuid || genNanoid) {
+	if !(genUuid || genCuid || genNanoid || genUlid) {
 		appName := strings.ToLower(os.Args[0])
 		if strings.HasPrefix(appName, "uuid") {
 			genUuid = true
@@ -47,17 +51,21 @@ func main() {
 			genCuid = true
 		} else if strings.HasPrefix(appName, "nanoid") {
 			genNanoid = true
+		} else if strings.HasPrefix(appName, "ulid") {
+			genUlid = true
 		}
 	}
 
 	for i := 0; i < count; i++ {
 		var u string
-		if genCuid || slug || crypt {
+		if genCuid {
 			u = createCuid(slug, crypt)
 		} else if genNanoid {
 			u = createNanoid(length)
 		} else if genUuid {
 			u = createUUID(dash, version)
+		} else if genUlid {
+			u = createUlid(crypt)
 		}
 
 		lastChar := sep
@@ -117,4 +125,19 @@ func createNanoid(length int) string {
 	}
 
 	return generator()
+}
+
+func createUlid(crypt bool) string {
+	if crypt {
+		entropy := rand.Reader
+		ms := ulid.Timestamp(time.Now())
+		id, err := ulid.New(ms, entropy)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(5)
+		}
+		return id.String()
+	}
+	// default to fast/less secure
+	return ulid.Make().String()
 }

@@ -5,6 +5,7 @@ Simple little program to use for generating different types of unique ids on the
 * [uuids/guids](https://en.wikipedia.org/wiki/Universally_unique_identifier)
 * [cuids](https://usecuid.org/)
 * [nanoids](https://github.com/ai/nanoid)
+* [ulids](https://github.com/ulid/spec)
 
 
 ## Why?
@@ -38,20 +39,20 @@ To further show "why," I expanded the utility to create other types of unique id
 
 -l=# length of the id where applicable (currently only with nanoIds)
 
+-crypt=true|false Generate cryptographic-random ids (default = false, modifier to cuid and ulid generation)
 
--uuid=true|false Generate uuids (default = true if app is named ```uuid```)
+-slug=true|false Generate id slugs (default = false, modifier to cuid generation)
+
+-uuid=true|false Generate uuids (default = true if executable is named ```uuid```)
 
 -v=(1|4) Version to generate (default = 4)
 
 -d=true|false Print dashes in uuids (default = true)
 
+-cuid=true|false Generate cuids (default = false unless executable is named ```cuid```)
 
--cuid=true|false Generate cuids (default = false unless app is named ```cuid```)
+-nano=true|false Generate nanoIds (default = false unless executable is named ```nanoid```)
 
--slug=true|false Generate cuid slugs (default = false)
+-ulid=true|false Generate nanoIds (default = false unless executable is named ```ulid```)
 
--crypt=true|false Generate cryptographic-random cuids (default = false)
-
--nano=true|false Generate nanoIds (default = false unless app is named ```nanoid```)
-
-(note: on Windows platforms, the app extension is ignored for comparing app name)
+(note: on Windows platforms, the executable extension is ignored for comparing executable name)
