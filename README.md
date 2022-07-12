@@ -36,16 +36,22 @@ To further show "why," I expanded the utility to create other types of unique id
 
 -sep=string Separator character for multiples (default = newline)
 
+-l=# length of the id where applicable (currently only with nanoIds)
+
+
+-uuid=true|false Generate uuids (default = true if app is named ```uuid```)
+
 -v=(1|4) Version to generate (default = 4)
 
 -d=true|false Print dashes in uuids (default = true)
 
--cuid=true|false Generate cuids instead of uuids (default = false)
 
--slug=true|false Generate cuid slugs instead of uuids (default = false)
+-cuid=true|false Generate cuids (default = false unless app is named ```cuid```)
 
--crypt=true|false Generate cryptographic-random cuids instead of uuids (default = false)
+-slug=true|false Generate cuid slugs (default = false)
 
--nano=true|false Generate nanoIds instead of uuids (default = false)
+-crypt=true|false Generate cryptographic-random cuids (default = false)
 
--l=# length of the id where applicable (currently only with nanoIds)
+-nano=true|false Generate nanoIds (default = false unless app is named ```nanoid```)
+
+(note: on Windows platforms, the app extension is ignored for comparing app name)
