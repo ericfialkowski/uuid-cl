@@ -1,11 +1,14 @@
 # uuid-cl
 
 ## Description
-Simple little program to use for generating uuids (and now cuids see: https://usecuid.org/) 
-on the command line. 
+Simple little program to use for generating different types of unique ids on the command line
+* [uuids/guids](https://en.wikipedia.org/wiki/Universally_unique_identifier)
+* [cuids](https://usecuid.org/)
+* [nanoids](https://github.com/ai/nanoid)
+
 
 ## Why?
-I recently discovered https://github.com/veler/DevToys and was hoping 
+I recently discovered [DevToys](https://github.com/veler/DevToys) and was hoping 
 the tools would be more command line oriented. So being bored one 
 afternoon thought I'd bang out a quick little tool. Yes, there are other
 ways to accomplish the basics of generating an uuid. See https://superuser.com/questions/155740/how-can-i-generate-a-uuid-from-the-command-line-in-windows-xp
@@ -16,7 +19,7 @@ Another reason for "why," is a simple "because I can." While we should strive to
 follow the "dry" principle, don't be afraid to write little tools that
 match _your_ needs.
 
-To further show "why," I expanded the utility to create cuids in addition to uuids.
+To further show "why," I expanded the utility to create other types of unique ids in addition to uuids.
 
 ## Building
 
@@ -42,3 +45,7 @@ To further show "why," I expanded the utility to create cuids in addition to uui
 -slug=true|false Generate cuid slugs instead of uuids (default = false)
 
 -crypt=true|false Generate cryptographic-random cuids instead of uuids (default = false)
+
+-nano=true|false Generate nanoIds instead of uuids (default = false)
+
+-l=# length of the id where applicable (currently only with nanoIds)
