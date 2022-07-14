@@ -8,6 +8,7 @@ import (
 	"github.com/jaevor/go-nanoid"
 	"github.com/lucsky/cuid"
 	"github.com/oklog/ulid/v2"
+	"github.com/rs/xid"
 	"os"
 	"strings"
 	"time"
@@ -24,6 +25,7 @@ func main() {
 	var genCuid bool
 	var genNanoid bool
 	var genUlid bool
+	var genXid bool
 
 	var count int
 	var sep string
@@ -38,12 +40,13 @@ func main() {
 	flag.BoolVar(&crypt, "crypt", false, "Generate cryptographic strong id (modifier to cuid and ulid)")
 	flag.BoolVar(&genNanoid, "nano", false, "Generate nanoid")
 	flag.BoolVar(&genUlid, "ulid", false, "Generate ulid")
+	flag.BoolVar(&genXid, "xid", false, "Generate xid")
 	flag.IntVar(&count, "n", 1, "Number to generate")
 	flag.StringVar(&sep, "sep", "\n", "Separator character to use when generating multiples")
 	flag.IntVar(&length, "l", 0, "Length of a unique id to generate")
 	flag.Parse()
 
-	if !(genUuid || genCuid || genNanoid || genUlid) {
+	if !(genUuid || genCuid || genNanoid || genUlid || genXid) {
 		appName := strings.ToLower(os.Args[0])
 		if strings.HasPrefix(appName, "uuid") {
 			genUuid = true
@@ -53,6 +56,8 @@ func main() {
 			genNanoid = true
 		} else if strings.HasPrefix(appName, "ulid") {
 			genUlid = true
+		} else if strings.HasPrefix(appName, "xid") {
+			genXid = true
 		}
 	}
 
@@ -66,6 +71,8 @@ func main() {
 			u = createUUID(dash, version)
 		} else if genUlid {
 			u = createUlid(crypt)
+		} else if genXid {
+			u = createXid()
 		}
 
 		lastChar := sep
@@ -140,4 +147,8 @@ func createUlid(crypt bool) string {
 	}
 	// default to fast/less secure
 	return ulid.Make().String()
+}
+
+func createXid() string {
+	return xid.New().String()
 }

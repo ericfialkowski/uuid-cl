@@ -6,6 +6,7 @@ Simple little program to use for generating different types of unique ids on the
 * [cuids](https://usecuid.org/)
 * [nanoids](https://github.com/ai/nanoid)
 * [ulids](https://github.com/ulid/spec)
+* [xids](github.com/rs/xid)
 
 
 ## Why?
@@ -54,5 +55,7 @@ To further show "why," I expanded the utility to create other types of unique id
 -nano=true|false Generate nanoIds (default = false unless executable is named ```nanoid```)
 
 -ulid=true|false Generate nanoIds (default = false unless executable is named ```ulid```)
+
+-xid=true|false Generate xids (default = false unless executable is named ```xid```)
 
 (note: on Windows platforms, the executable extension is ignored for comparing executable name)
