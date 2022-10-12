@@ -48,15 +48,15 @@ func main() {
 
 	if !(genUuid || genCuid || genNanoid || genUlid || genXid) {
 		appName := strings.ToLower(os.Args[0])
-		if strings.HasPrefix(appName, "uuid") {
+		if strings.Contains(appName, "uuid") {
 			genUuid = true
-		} else if strings.HasPrefix(appName, "cuid") {
+		} else if strings.Contains(appName, "cuid") {
 			genCuid = true
-		} else if strings.HasPrefix(appName, "nanoid") {
+		} else if strings.Contains(appName, "nanoid") {
 			genNanoid = true
-		} else if strings.HasPrefix(appName, "ulid") {
+		} else if strings.Contains(appName, "ulid") {
 			genUlid = true
-		} else if strings.HasPrefix(appName, "xid") {
+		} else if strings.Contains(appName, "xid") {
 			genXid = true
 		}
 	}
