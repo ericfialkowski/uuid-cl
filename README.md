@@ -6,7 +6,8 @@ Simple little program to use for generating different types of unique ids on the
 * [cuids](https://usecuid.org/)
 * [nanoids](https://github.com/ai/nanoid)
 * [ulids](https://github.com/ulid/spec)
-* [xids](github.com/rs/xid)
+* [xids](https://github.com/rs/xid)
+* [MongoDB ObjectIDs](https://github.com/mongodb/mongo-go-driver/blob/v1/bson/primitive/objectid.go)
 
 
 ## Why?
@@ -14,8 +15,8 @@ I recently discovered [DevToys](https://github.com/veler/DevToys) and was hoping
 the tools would be more command line oriented. So being bored one 
 afternoon thought I'd bang out a quick little tool. Yes, there are other
 ways to accomplish the basics of generating an uuid. See https://superuser.com/questions/155740/how-can-i-generate-a-uuid-from-the-command-line-in-windows-xp
-for ways to do it on Windows. On Linux look into ```uuid``` or ```uuidgen```. On a Mac, I 
-think ```uuidgen``` exists. I'll try to update this if/when I get access to a Mac again.
+for ways to do it on Windows. On Linux look into ```uuid``` or ```uuidgen```. On a Mac,  
+```uuidgen``` exists.
 
 Another reason for "why," is a simple "because I can." While we should strive to 
 follow the "dry" principle, don't be afraid to write little tools that
@@ -57,5 +58,9 @@ To further show "why," I expanded the utility to create other types of unique id
 -ulid=true|false Generate nanoIds (default = false unless executable is named ```ulid```)
 
 -xid=true|false Generate xids (default = false unless executable is named ```xid```)
+
+-oid=true|false Generate MongoDB ObjectIDs (default = false unless executable is named ```oid```)
+
+-demo=true|false Generate one of each type (default = false)
 
 (note: on Windows platforms, the executable extension is ignored for comparing executable name)

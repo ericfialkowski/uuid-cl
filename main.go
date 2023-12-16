@@ -9,6 +9,7 @@ import (
 	"github.com/lucsky/cuid"
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/xid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"os"
 	"strings"
 	"time"
@@ -26,12 +27,15 @@ func main() {
 	var genNanoid bool
 	var genUlid bool
 	var genXid bool
+	var genObjectId bool
+	var demo bool
 
 	var count int
 	var sep string
 
 	var length int
 
+	flag.BoolVar(&demo, "demo", false, "Generate one of each")
 	flag.BoolVar(&genUuid, "uuid", false, "Generate uuid")
 	flag.BoolVar(&dash, "d", true, "Print uuid with dashes")
 	flag.IntVar(&version, "v", 4, "Version of UUID to generate (1 or 4)")
@@ -41,12 +45,48 @@ func main() {
 	flag.BoolVar(&genNanoid, "nano", false, "Generate nanoid")
 	flag.BoolVar(&genUlid, "ulid", false, "Generate ulid")
 	flag.BoolVar(&genXid, "xid", false, "Generate xid")
+	flag.BoolVar(&genObjectId, "oid", false, "Generate MongoDB ObjectID")
 	flag.IntVar(&count, "n", 1, "Number to generate")
 	flag.StringVar(&sep, "sep", "\n", "Separator character to use when generating multiples")
 	flag.IntVar(&length, "l", 0, "Length of a unique id to generate")
 	flag.Parse()
 
-	if !(genUuid || genCuid || genNanoid || genUlid || genXid) {
+	if demo {
+		fmt.Printf("uuid: %s\n", createUUID(dash, version))
+		fmt.Printf("cuid: %s\n", createCuid(slug, crypt))
+		fmt.Printf("nanoid: %s\n", createNanoid(length))
+		fmt.Printf("ulid: %s\n", createUlid(crypt))
+		fmt.Printf("xid: %s\n", createXid())
+		fmt.Printf("mongodb ObjectID: %s\n", createObjectID())
+		os.Exit(0)
+	}
+
+	types := 0
+	if genUuid {
+		types++
+	}
+	if genCuid {
+		types++
+	}
+	if genNanoid {
+		types++
+	}
+	if genUlid {
+		types++
+	}
+	if genXid {
+		types++
+	}
+	if genObjectId {
+		types++
+	}
+
+	if types > 1 {
+		fmt.Fprintln(os.Stderr, "Can only create one type of identifier at a time")
+		os.Exit(1)
+	}
+
+	if types == 0 {
 		appName := strings.ToLower(os.Args[0])
 		if strings.Contains(appName, "uuid") {
 			genUuid = true
@@ -58,6 +98,8 @@ func main() {
 			genUlid = true
 		} else if strings.Contains(appName, "xid") {
 			genXid = true
+		} else if strings.Contains(appName, "oid") {
+			genObjectId = true
 		}
 	}
 
@@ -73,6 +115,8 @@ func main() {
 			u = createUlid(crypt)
 		} else if genXid {
 			u = createXid()
+		} else if genObjectId {
+			u = createObjectID()
 		}
 
 		lastChar := sep
@@ -97,7 +141,7 @@ func createUUID(dash bool, version int) string {
 	if dash {
 		return fmt.Sprintf("%v", u)
 	} else {
-		return fmt.Sprintf("%s", strings.Replace(u.String(), "-", "", -1))
+		return strings.ReplaceAll(u.String(), "-", "")
 	}
 }
 
@@ -123,7 +167,7 @@ func createCuid(slug bool, crypt bool) string {
 func createNanoid(length int) string {
 	l := length
 	if l < 1 {
-		length = 21
+		l = 21
 	}
 	generator, err := nanoid.Standard(l)
 	if err != nil {
@@ -151,4 +195,8 @@ func createUlid(crypt bool) string {
 
 func createXid() string {
 	return xid.New().String()
+}
+
+func createObjectID() string {
+	return primitive.NewObjectID().Hex()
 }
