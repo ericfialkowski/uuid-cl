@@ -4,22 +4,22 @@ import (
 	"crypto/rand"
 	"flag"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/jaevor/go-nanoid"
-	"github.com/lucsky/cuid"
-	"github.com/oklog/ulid/v2"
-	"github.com/rs/xid"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/jaevor/go-nanoid"
+	"github.com/nrednav/cuid2"
+	"github.com/oklog/ulid/v2"
+	"github.com/rs/xid"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func main() {
 	var dash bool
 	var version int
 
-	var slug bool
 	var crypt bool
 
 	var genUuid bool
@@ -38,22 +38,21 @@ func main() {
 	flag.BoolVar(&demo, "demo", false, "Generate one of each")
 	flag.BoolVar(&genUuid, "uuid", false, "Generate uuid")
 	flag.BoolVar(&dash, "d", true, "Print uuid with dashes")
-	flag.IntVar(&version, "v", 4, "Version of UUID to generate (1 or 4)")
+	flag.IntVar(&version, "v", 4, "Version of UUID to generate (1, 4, 6, or 7)")
 	flag.BoolVar(&genCuid, "cuid", false, "Generate cuid")
-	flag.BoolVar(&slug, "slug", false, "Generate a slug (modifier to cuid)")
-	flag.BoolVar(&crypt, "crypt", false, "Generate cryptographic strong id (modifier to cuid and ulid)")
+	flag.BoolVar(&crypt, "crypt", false, "Generate cryptographic strong id (modifier to ulid)")
 	flag.BoolVar(&genNanoid, "nano", false, "Generate nanoid")
 	flag.BoolVar(&genUlid, "ulid", false, "Generate ulid")
 	flag.BoolVar(&genXid, "xid", false, "Generate xid")
 	flag.BoolVar(&genObjectId, "oid", false, "Generate MongoDB ObjectID")
 	flag.IntVar(&count, "n", 1, "Number to generate")
 	flag.StringVar(&sep, "sep", "\n", "Separator character to use when generating multiples")
-	flag.IntVar(&length, "l", 0, "Length of a unique id to generate")
+	flag.IntVar(&length, "l", 0, "Length of a unique id to generate (modifier to cuid and nanoid")
 	flag.Parse()
 
 	if demo {
 		fmt.Printf("uuid: %s\n", createUUID(dash, version))
-		fmt.Printf("cuid: %s\n", createCuid(slug, crypt))
+		fmt.Printf("cuid: %s\n", createCuid(length))
 		fmt.Printf("nanoid: %s\n", createNanoid(length))
 		fmt.Printf("ulid: %s\n", createUlid(crypt))
 		fmt.Printf("xid: %s\n", createXid())
@@ -106,7 +105,7 @@ func main() {
 	for i := 0; i < count; i++ {
 		var u string
 		if genCuid {
-			u = createCuid(slug, crypt)
+			u = createCuid(length)
 		} else if genNanoid {
 			u = createNanoid(length)
 		} else if genUuid {
@@ -134,8 +133,12 @@ func createUUID(dash bool, version int) string {
 		u = uuid.Must(uuid.NewUUID())
 	} else if version == 4 {
 		u = uuid.New()
+	} else if version == 6 {
+		u = uuid.Must(uuid.NewV6())
+	} else if version == 7 {
+		u = uuid.Must(uuid.NewV7())
 	} else {
-		fmt.Println("Version must be either 1 or 4")
+		fmt.Fprintln(os.Stderr, "Version must be either 1, 4, 6, or 7")
 		os.Exit(2)
 	}
 	if dash {
@@ -145,23 +148,18 @@ func createUUID(dash bool, version int) string {
 	}
 }
 
-func createCuid(slug bool, crypt bool) string {
-	var c string
-	if crypt {
-		var err error
-		c, err = cuid.NewCrypto(rand.Reader)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(3)
-		}
-	} else {
-		if slug {
-			c = cuid.Slug()
-		} else {
-			c = cuid.New()
-		}
+func createCuid(length int) string {
+	if length < 2 || length > 32 {
+		return cuid2.Generate()
 	}
-	return c
+	generate, err := cuid2.Init(
+		cuid2.WithLength(length),
+	)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(3)
+	}
+	return generate()
 }
 
 func createNanoid(length int) string {
@@ -171,7 +169,7 @@ func createNanoid(length int) string {
 	}
 	generator, err := nanoid.Standard(l)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(4)
 	}
 
@@ -184,7 +182,7 @@ func createUlid(crypt bool) string {
 		ms := ulid.Timestamp(time.Now())
 		id, err := ulid.New(ms, entropy)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, err)
 			os.Exit(5)
 		}
 		return id.String()

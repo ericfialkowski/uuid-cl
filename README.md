@@ -39,15 +39,13 @@ To further show "why," I expanded the utility to create other types of unique id
 
 -sep=string Separator character for multiples (default = newline)
 
--l=# length of the id where applicable (currently only with nanoIds)
+-l=# length of the id where applicable (modifier to cuids and nanoIds)
 
--crypt=true|false Generate cryptographic-random ids (default = false, modifier to cuid and ulid generation)
-
--slug=true|false Generate id slugs (default = false, modifier to cuid generation)
+-crypt=true|false Generate cryptographic-random ids (default = false, modifier to ulid generation)
 
 -uuid=true|false Generate uuids (default = true if executable is named ```uuid```)
 
--v=(1|4) Version to generate (default = 4)
+-v=(1|4|6|7) Version to generate (default = 4)
 
 -d=true|false Print dashes in uuids (default = true)
 
