@@ -1,15 +1,15 @@
 /*
-Copyright 2022 jaevor.
+Copyright 2024 jaevor.
 License can be found in the LICENSE file.
 
 Original reference: https://github.com/ai/nanoid
 */
+
 package nanoid
 
 import (
 	crand "crypto/rand"
 	"errors"
-	"math"
 	"math/bits"
 	"sync"
 	"unicode"
@@ -18,7 +18,6 @@ import (
 type generator = func() string
 
 // `A-Za-z0-9_-`.
-// Using less memory with [64]byte{...} than []byte(...).
 var standardAlphabet = [64]byte{
 	'A', 'B', 'C', 'D', 'E',
 	'F', 'G', 'H', 'I', 'J',
@@ -57,13 +56,9 @@ var asciiAlphabet = [90]byte{
 }
 
 /*
-	Returns a new generator of standard Nano IDs.
+Returns a mutexed buffered NanoID generator.
 
-	📝 Recommended (canonic) length is 21.
-
-	🟡 Errors if length is not, or within 2-255.
-
-	🧿 Concurrency safe.
+Errors if length is not within 2-255 (incl).
 */
 func Standard(length int) (generator, error) {
 	if invalidLength(length) {
@@ -71,15 +66,16 @@ func Standard(length int) (generator, error) {
 	}
 
 	// Multiplying to increase the 'buffer' so that .Read()
-	// has to be called less, which is more efficient.
-	// b holds the random crypto bytes.
+	// has to be called less which is more efficient in the
+	// longrun but requires more memory.
 	size := length * length * 7
+	// b holds the random crypto bytes.
 	b := make([]byte, size)
 	crand.Read(b)
+
 	offset := 0
 
-	// Since the standard alphabet is ASCII, we don't have to use runes.
-	// ASCII max is 128, so byte will be perfect.
+	// The standard alphabet is ASCII which goes up to 128 so we use bytes instead of runes.
 	id := make([]byte, length)
 
 	var mu sync.Mutex
@@ -88,8 +84,7 @@ func Standard(length int) (generator, error) {
 		mu.Lock()
 		defer mu.Unlock()
 
-		// If all the bytes in the slice
-		// have been used, refill.
+		// Refill if all the bytes have been used.
 		if offset == size {
 			crand.Read(b)
 			offset = 0
@@ -103,11 +98,9 @@ func Standard(length int) (generator, error) {
 				as empty string fallback or magic numbers is unneccessary because
 				the bitmask trims bytes down to the alphabet size (64)."
 			*/
-			// Index using the offset.
 			id[i] = standardAlphabet[b[i+offset]&63]
 		}
 
-		// Extend the offset.
 		offset += length
 
 		return string(id)
@@ -115,23 +108,28 @@ func Standard(length int) (generator, error) {
 }
 
 /*
-	Will be deprecated; same as nanoid.CustomUnicode.
+Returns a standard NanoID generator with canonic length (21)
 
-	🟡 Change to using nanoid.CustomUnicode.
+i.e., nanoid.Standard(21)
+*/
+func Canonic() (generator, error) {
+	return Standard(21)
+}
+
+/*
+Deprecated; use nanoid.CustomUnicode.
 */
 func Custom(alphabet string, length int) (generator, error) {
 	return CustomUnicode(alphabet, length)
 }
 
 /*
-	Returns a Nano ID generator which uses a custom alphabet that is allowed to contain non-ASCII (unicode).
+Returns a mutexed buffered NanoID generator which uses a custom alphabet that can contain non-ASCII (unicode).
 
-	Uses more memory by supporting unicode.
-	For ASCII-only, use nanoid.CustomASCII.
+Uses more memory by supporting unicode.
+For ASCII-only, use nanoid.CustomASCII.
 
-	🟡 Errors if length is not, or within 2-255.
-
-	🧿 Concurrency safe.
+🟡 Errors if length is within 2-255 (incl).
 */
 func CustomUnicode(alphabet string, length int) (generator, error) {
 	if invalidLength(length) {
@@ -147,7 +145,7 @@ func CustomUnicode(alphabet string, length int) (generator, error) {
 	x := uint32(alphabetLen) - 1
 	clz := bits.LeadingZeros32(x | 1)
 	mask := (2 << (31 - clz)) - 1
-	step := int(math.Ceil((1.6 * float64(mask*length)) / float64(alphabetLen)))
+	step := (length / 5) * 8
 
 	b := make([]byte, step)
 	id := make([]rune, length)
@@ -177,15 +175,22 @@ func CustomUnicode(alphabet string, length int) (generator, error) {
 	}, nil
 }
 
+// MustCustomASCII is a wrapper around CustomASCII but panics if any initialization error occurs.
+func MustCustomASCII(alphabet string, length int) generator {
+	g, err := CustomASCII(alphabet, length)
+	if err != nil {
+		panic(err.Error())
+	}
+	return g
+}
+
 /*
-	Returns a Nano ID generator which uses a custom ASCII alphabet.
+Returns a Nano ID generator which uses a custom ASCII alphabet.
 
-	Uses less memory than CustomUnicode by only supporting ASCII.
-	For unicode support use nanoid.CustomUnicode.
+Uses less memory than CustomUnicode by only supporting ASCII.
+For unicode support use nanoid.CustomUnicode.
 
-	🟡 Errors if alphabet is not valid ASCII or if length is not, or within 2-255.
-
-	🧿 Concurrency safe.
+Errors if alphabet is not valid ASCII or if length is not within 2-255 (incl).
 */
 func CustomASCII(alphabet string, length int) (generator, error) {
 	if invalidLength(length) {
@@ -205,7 +210,7 @@ func CustomASCII(alphabet string, length int) (generator, error) {
 	x := uint32(alphabetLen) - 1
 	clz := bits.LeadingZeros32(x | 1)
 	mask := (2 << (31 - clz)) - 1
-	step := int(math.Ceil((1.6 * float64(mask*length)) / float64(alphabetLen)))
+	step := (length / 5) * 8
 
 	b := make([]byte, step)
 	id := make([]byte, length)
@@ -236,11 +241,9 @@ func CustomASCII(alphabet string, length int) (generator, error) {
 }
 
 /*
-	Returns a NanoID generator that uses an alphabet of ASCII characters 40-126 inclusive.
+Returns a mutexed buffereed NanoID generator that uses an alphabet of ASCII characters 40-126 inclusive.
 
-	🟡 Errors if length is not, or within 2-255.
-
-	🧿 Concurrency safe.
+Errors if length is not within 2-255 (incl).
 */
 func ASCII(length int) (generator, error) {
 	if invalidLength(length) {
@@ -250,6 +253,7 @@ func ASCII(length int) (generator, error) {
 	size := length * length * 7
 	b := make([]byte, size)
 	crand.Read(b)
+
 	offset := 0
 
 	id := make([]byte, length)
@@ -266,7 +270,7 @@ func ASCII(length int) (generator, error) {
 		}
 
 		for i := 0; i < length; i++ {
-			id[i] = asciiAlphabet[b[i+offset]&90]
+			id[i] = asciiAlphabet[b[i+offset]&89]
 		}
 
 		offset += length
@@ -276,7 +280,7 @@ func ASCII(length int) (generator, error) {
 	}, nil
 }
 
-var ErrInvalidLength = errors.New("length for ID is invalid (must be within 2-255)")
+var ErrInvalidLength = errors.New("nanoid: length for ID is invalid (must be within 2-255)")
 
 func invalidLength(length int) bool {
 	return length < 2 || length > 255
