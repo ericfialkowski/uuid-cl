@@ -32,6 +32,8 @@ To further show "why," I expanded the utility to create other types of unique id
 ## Usage
 ```uuid <optional args>```
 
+*note: the last generated uuid will be copied to the system clipboard*
+
 
 #### Optional Arguments
 
@@ -45,7 +47,7 @@ To further show "why," I expanded the utility to create other types of unique id
 
 -uuid=true|false Generate uuids (default = true if executable is named ```uuid```)
 
--v=(1|4|6|7) Version to generate (default = 4)
+-v=(1|2p|2g|4|6|7) Version to generate (default = 4)
 
 -d=true|false Print dashes in uuids (default = true)
 

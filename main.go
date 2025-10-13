@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/atotto/clipboard"
 	"github.com/google/uuid"
 	"github.com/jaevor/go-nanoid"
 	"github.com/nrednav/cuid2"
@@ -18,7 +19,7 @@ import (
 
 func main() {
 	var dash bool
-	var version int
+	var version string
 
 	var crypt bool
 
@@ -38,7 +39,7 @@ func main() {
 	flag.BoolVar(&demo, "demo", false, "Generate one of each")
 	flag.BoolVar(&genUuid, "uuid", false, "Generate uuid")
 	flag.BoolVar(&dash, "d", true, "Print uuid with dashes")
-	flag.IntVar(&version, "v", 4, "Version of UUID to generate (1, 4, 6, or 7)")
+	flag.StringVar(&version, "v", "4", "Version of UUID to generate: 1, 2p (DEC Person), 2g (DCE Group) 4, 6, or 7")
 	flag.BoolVar(&genCuid, "cuid", false, "Generate cuid")
 	flag.BoolVar(&crypt, "crypt", false, "Generate cryptographic strong id (modifier to ulid)")
 	flag.BoolVar(&genNanoid, "nano", false, "Generate nanoid")
@@ -123,22 +124,32 @@ func main() {
 			lastChar = ""
 		}
 
-		fmt.Printf("%s%s", u, lastChar)
+		output := fmt.Sprintf("%s%s", u, lastChar)
+		if count == 1 {
+			_ = clipboard.WriteAll(output)
+		}
+		fmt.Println(output)
 	}
 }
 
-func createUUID(dash bool, version int) string {
+func createUUID(dash bool, v string) string {
+	version := strings.ToLower(v)
 	var u uuid.UUID
-	if version == 1 {
+	if version == "1" {
 		u = uuid.Must(uuid.NewUUID())
-	} else if version == 4 {
+	} else if version == "2p" {
+		u = uuid.Must(uuid.NewDCEPerson())
+	} else if version == "2g" {
+		u = uuid.Must(uuid.NewDCEGroup())
+	} else if version == "4" {
 		u = uuid.New()
-	} else if version == 6 {
+	} else if version == "6" {
 		u = uuid.Must(uuid.NewV6())
-	} else if version == 7 {
+	} else if version == "7" {
 		u = uuid.Must(uuid.NewV7())
 	} else {
-		fmt.Fprintln(os.Stderr, "Version must be either 1, 4, 6, or 7")
+		fmt.Fprintln(os.Stderr, "Version must be either 1, 2p, 2g, 4, 6, or 7")
+		fmt.Fprintln(os.Stderr, "Was: %s", v)
 		os.Exit(2)
 	}
 	if dash {
