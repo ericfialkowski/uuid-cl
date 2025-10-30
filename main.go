@@ -30,7 +30,7 @@ func main() {
 	var genXid bool
 	var genObjectId bool
 	var demo bool
-
+	var clipCopy bool
 	var count int
 	var sep string
 
@@ -49,6 +49,7 @@ func main() {
 	flag.IntVar(&count, "n", 1, "Number to generate")
 	flag.StringVar(&sep, "sep", "\n", "Separator character to use when generating multiples")
 	flag.IntVar(&length, "l", 0, "Length of a unique id to generate (modifier to cuid and nanoid")
+	flag.BoolVar(&clipCopy, "clip", false, "Copy id to clipboard (will only be the last of multiple are generated)")
 	flag.Parse()
 
 	if demo {
@@ -125,11 +126,12 @@ func main() {
 		}
 
 		output := fmt.Sprintf("%s%s", u, lastChar)
-		if count == 1 {
+		if clipCopy && count == 1 {
 			_ = clipboard.WriteAll(output)
 		}
-		fmt.Println(output)
+		fmt.Print(output)
 	}
+	fmt.Println()
 }
 
 func createUUID(dash bool, v string) string {
