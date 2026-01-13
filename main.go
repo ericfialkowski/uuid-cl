@@ -62,24 +62,12 @@ func main() {
 		os.Exit(0)
 	}
 
+	flags := []bool{genUuid, genCuid, genNanoid, genUlid, genXid, genObjectId}
 	types := 0
-	if genUuid {
-		types++
-	}
-	if genCuid {
-		types++
-	}
-	if genNanoid {
-		types++
-	}
-	if genUlid {
-		types++
-	}
-	if genXid {
-		types++
-	}
-	if genObjectId {
-		types++
+	for _, f := range flags {
+		if f {
+			types++
+		}
 	}
 
 	if types > 1 {
