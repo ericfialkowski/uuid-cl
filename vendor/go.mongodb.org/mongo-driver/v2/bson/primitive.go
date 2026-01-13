@@ -3,17 +3,29 @@
 // Licensed under the Apache License, Version 2.0 (the "License"); you may
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+//
+// Based on gopkg.in/mgo.v2/bson by Gustavo Niemeyer
+// See THIRD-PARTY-NOTICES for original license terms.
 
-// Package primitive contains types similar to Go primitives for BSON types that do not have direct
-// Go primitive representations.
-package primitive // import "go.mongodb.org/mongo-driver/bson/primitive"
+package bson
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 )
+
+// Zeroer allows custom struct types to implement a report of zero
+// state. All struct types that don't implement Zeroer or where IsZero
+// returns false are considered to be not zero.
+type Zeroer interface {
+	IsZero() bool
+}
+
+// The following primitive types are similar to Go primitives for BSON types that
+// do not have direct Go primitive representations.
 
 // Binary represents a BSON binary value.
 type Binary struct {
@@ -45,24 +57,21 @@ var _ json.Unmarshaler = (*DateTime)(nil)
 
 // MarshalJSON marshal to time type.
 func (d DateTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Time().UTC())
+	return d.Time().UTC().MarshalJSON()
 }
 
-// UnmarshalJSON creates a primitive.DateTime from a JSON string.
+// UnmarshalJSON creates a bson.DateTime from a JSON string.
 func (d *DateTime) UnmarshalJSON(data []byte) error {
-	// Ignore "null" to keep parity with the time.Time type and the standard library. Decoding "null" into a non-pointer
-	// DateTime field will leave the field unchanged. For pointer values, the encoding/json will set the pointer to nil
-	// and will not defer to the UnmarshalJSON hook.
+	// Ignore "null" so that we can distinguish between a "null" value and
+	// valid value that is the zero time (as reported by time.Time.IsZero).
 	if string(data) == "null" {
 		return nil
 	}
-
-	var tempTime time.Time
-	if err := json.Unmarshal(data, &tempTime); err != nil {
+	var t time.Time
+	if err := t.UnmarshalJSON(data); err != nil {
 		return err
 	}
-
-	*d = NewDateTimeFromTime(tempTime)
+	*d = NewDateTimeFromTime(t)
 	return nil
 }
 
@@ -128,7 +137,7 @@ type Symbol string
 // CodeWithScope represents a BSON JavaScript code with scope value.
 type CodeWithScope struct {
 	Code  JavaScript
-	Scope interface{}
+	Scope any
 }
 
 func (cws CodeWithScope) String() string {
@@ -174,14 +183,6 @@ func (tp Timestamp) Compare(tp2 Timestamp) int {
 	}
 }
 
-// CompareTimestamp compares the time instant tp with tp2. If tp is before tp2, it returns -1; if tp is after
-// tp2, it returns +1; if they're the same, it returns 0.
-//
-// Deprecated: Use Timestamp.Compare instead.
-func CompareTimestamp(tp, tp2 Timestamp) int {
-	return tp.Compare(tp2)
-}
-
 // MinKey represents the BSON minkey value.
 type MinKey struct{}
 
@@ -196,36 +197,183 @@ type MaxKey struct{}
 //	bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
 type D []E
 
-// Map creates a map from the elements of the D.
-//
-// Deprecated: Converting directly from a D to an M will not be supported in Go Driver 2.0. Instead,
-// users should marshal the D to BSON using bson.Marshal and unmarshal it to M using bson.Unmarshal.
-func (d D) Map() M {
-	m := make(M, len(d))
-	for _, e := range d {
-		m[e.Key] = e.Value
+func (d D) String() string {
+	b, err := MarshalExtJSON(d, true, false)
+	if err != nil {
+		return ""
 	}
-	return m
+	return string(b)
+}
+
+// MarshalJSON encodes D into JSON.
+func (d D) MarshalJSON() ([]byte, error) {
+	if d == nil {
+		return json.Marshal(nil)
+	}
+	var err error
+	var buf bytes.Buffer
+	buf.Write([]byte("{"))
+	enc := json.NewEncoder(&buf)
+	for i, e := range d {
+		err = enc.Encode(e.Key)
+		if err != nil {
+			return nil, err
+		}
+		buf.Write([]byte(":"))
+		err = enc.Encode(e.Value)
+		if err != nil {
+			return nil, err
+		}
+		if i < len(d)-1 {
+			buf.Write([]byte(","))
+		}
+	}
+	buf.Write([]byte("}"))
+	return json.RawMessage(buf.Bytes()).MarshalJSON()
+}
+
+// UnmarshalJSON decodes D from JSON.
+func (d *D) UnmarshalJSON(b []byte) error {
+	dec := json.NewDecoder(bytes.NewReader(b))
+	t, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	if t == nil {
+		*d = nil
+		return nil
+	}
+	if v, ok := t.(json.Delim); !ok || v != '{' {
+		return &json.UnmarshalTypeError{
+			Value:  tokenString(t),
+			Type:   reflect.TypeOf(D(nil)),
+			Offset: dec.InputOffset(),
+		}
+	}
+	*d, err = jsonDecodeD(dec)
+	return err
 }
 
 // E represents a BSON element for a D. It is usually used inside a D.
 type E struct {
 	Key   string
-	Value interface{}
+	Value any
 }
 
 // M is an unordered representation of a BSON document. This type should be used when the order of the elements does not
-// matter. This type is handled as a regular map[string]interface{} when encoding and decoding. Elements will be
+// matter. This type is handled as a regular map[string]any when encoding and decoding. Elements will be
 // serialized in an undefined, random order. If the order of the elements matters, a D should be used instead.
 //
 // Example usage:
 //
 //	bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
-type M map[string]interface{}
+type M map[string]any
+
+func (m M) String() string {
+	b, err := MarshalExtJSON(m, true, false)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
 
 // An A is an ordered representation of a BSON array.
 //
 // Example usage:
 //
 //	bson.A{"bar", "world", 3.14159, bson.D{{"qux", 12345}}}
-type A []interface{}
+type A []any
+
+func jsonDecodeD(dec *json.Decoder) (D, error) {
+	res := D{}
+	for {
+		var e E
+
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		key, ok := t.(string)
+		if !ok {
+			break
+		}
+		e.Key = key
+
+		t, err = dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		switch v := t.(type) {
+		case json.Delim:
+			switch v {
+			case '[':
+				e.Value, err = jsonDecodeSlice(dec)
+				if err != nil {
+					return nil, err
+				}
+			case '{':
+				e.Value, err = jsonDecodeD(dec)
+				if err != nil {
+					return nil, err
+				}
+			}
+		default:
+			e.Value = t
+		}
+
+		res = append(res, e)
+	}
+	return res, nil
+}
+
+func jsonDecodeSlice(dec *json.Decoder) ([]any, error) {
+	var res []any
+	done := false
+	for !done {
+		t, err := dec.Token()
+		if err != nil {
+			return nil, err
+		}
+		switch v := t.(type) {
+		case json.Delim:
+			switch v {
+			case '[':
+				a, err := jsonDecodeSlice(dec)
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, a)
+			case '{':
+				d, err := jsonDecodeD(dec)
+				if err != nil {
+					return nil, err
+				}
+				res = append(res, d)
+			default:
+				done = true
+			}
+		default:
+			res = append(res, t)
+		}
+	}
+	return res, nil
+}
+
+func tokenString(t json.Token) string {
+	switch v := t.(type) {
+	case json.Delim:
+		switch v {
+		case '{':
+			return "object"
+		case '[':
+			return "array"
+		}
+	case bool:
+		return "bool"
+	case float64:
+		return "number"
+	case json.Number, string:
+		return "string"
+	}
+	return "unknown"
+}

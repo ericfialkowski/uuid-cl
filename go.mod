@@ -9,7 +9,7 @@ require (
 	github.com/nrednav/cuid2 v1.1.0
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/rs/xid v1.6.0
-	go.mongodb.org/mongo-driver v1.17.6
+	go.mongodb.org/mongo-driver/v2 v2.4.1
 )
 
 require (

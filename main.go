@@ -14,7 +14,7 @@ import (
 	"github.com/nrednav/cuid2"
 	"github.com/oklog/ulid/v2"
 	"github.com/rs/xid"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 func main() {
@@ -209,5 +209,5 @@ func createXid() string {
 }
 
 func createObjectID() string {
-	return primitive.NewObjectID().Hex()
+	return bson.NewObjectID().Hex()
 }
