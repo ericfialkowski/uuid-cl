@@ -71,7 +71,7 @@ func main() {
 	}
 
 	if types > 1 {
-		fmt.Fprintln(os.Stderr, "Can only create one type of identifier at a time")
+		_, _ = fmt.Fprintln(os.Stderr, "Can only create one type of identifier at a time")
 		os.Exit(1)
 	}
 
@@ -92,7 +92,7 @@ func main() {
 		}
 	}
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		var u string
 		if genCuid {
 			u = createCuid(length)
@@ -125,28 +125,31 @@ func main() {
 func createUUID(dash bool, v string) string {
 	version := strings.ToLower(v)
 	var u uuid.UUID
-	if version == "1" {
+
+	switch version {
+	case "1":
 		u = uuid.Must(uuid.NewUUID())
-	} else if version == "2p" {
+	case "2p":
 		u = uuid.Must(uuid.NewDCEPerson())
-	} else if version == "2g" {
+	case "2g":
 		u = uuid.Must(uuid.NewDCEGroup())
-	} else if version == "4" {
+	case "4":
 		u = uuid.New()
-	} else if version == "6" {
+	case "6":
 		u = uuid.Must(uuid.NewV6())
-	} else if version == "7" {
+	case "7":
 		u = uuid.Must(uuid.NewV7())
-	} else {
-		fmt.Fprintln(os.Stderr, "Version must be either 1, 2p, 2g, 4, 6, or 7")
-		fmt.Fprintln(os.Stderr, "Was: %s", v)
+	default:
+		_, _ = fmt.Fprintln(os.Stderr, "Version must be either 1, 2p, 2g, 4, 6, or 7")
+		_, _ = fmt.Fprintf(os.Stderr, "Was: %s\n", v)
 		os.Exit(2)
 	}
+
 	if dash {
 		return fmt.Sprintf("%v", u)
-	} else {
-		return strings.ReplaceAll(u.String(), "-", "")
 	}
+
+	return strings.ReplaceAll(u.String(), "-", "")
 }
 
 func createCuid(length int) string {
@@ -157,7 +160,7 @@ func createCuid(length int) string {
 		cuid2.WithLength(length),
 	)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(3)
 	}
 	return generate()
@@ -170,7 +173,7 @@ func createNanoid(length int) string {
 	}
 	generator, err := nanoid.Standard(l)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(4)
 	}
 
@@ -183,7 +186,7 @@ func createUlid(crypt bool) string {
 		ms := ulid.Timestamp(time.Now())
 		id, err := ulid.New(ms, entropy)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			os.Exit(5)
 		}
 		return id.String()
