@@ -160,7 +160,7 @@ func TestUniqueness(t *testing.T) {
 	for name, gen := range generators {
 		t.Run(name, func(t *testing.T) {
 			seen := make(map[string]struct{}, n)
-			for i := 0; i < n; i++ {
+			for range n {
 				id := gen()
 				if _, dup := seen[id]; dup {
 					t.Errorf("duplicate ID generated: %q", id)
