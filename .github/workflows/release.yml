@@ -28,11 +28,11 @@ jobs:
       - name: Build binaries
         run: |
           mkdir -p dist
-          GOOS=darwin  GOARCH=amd64 go build -ldflags="-s -w" -o dist/uuid-darwin-amd64 .
-          GOOS=darwin  GOARCH=arm64 go build -ldflags="-s -w" -o dist/uuid-darwin-arm64 .
-          GOOS=linux   GOARCH=amd64 go build -ldflags="-s -w" -o dist/uuid-linux-amd64 .
-          GOOS=linux   GOARCH=arm64 go build -ldflags="-s -w" -o dist/uuid-linux-arm64 .
-          GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/uuid-windows-amd64.exe .
+          GOOS=darwin  GOARCH=amd64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-darwin-amd64 .
+          GOOS=darwin  GOARCH=arm64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-darwin-arm64 .
+          GOOS=linux   GOARCH=amd64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-linux-amd64 .
+          GOOS=linux   GOARCH=arm64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-linux-arm64 .
+          GOOS=windows GOARCH=amd64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-windows-amd64.exe .
 
       - name: Create archives
         run: |
