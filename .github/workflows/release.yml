@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          GOOS=darwin  GOARCH=amd64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-darwin-amd64 .
+          GOOS=darwin  GOARCH=arm64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-darwin-arm64 .
+          GOOS=linux   GOARCH=amd64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-linux-amd64 .
+          GOOS=linux   GOARCH=arm64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-linux-arm64 .
+          GOOS=windows GOARCH=amd64 go build -mod=vendor -ldflags="-s -w" -o dist/uuid-windows-amd64.exe .
+
+      - name: Create archives
+        run: |
+          cd dist
+          for target in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64; do
+            cp "uuid-${target}" uuid
+            tar czf "uuid-${target}.tar.gz" uuid
+            rm uuid
+          done
+          zip uuid-windows-amd64.zip uuid-windows-amd64.exe
+
+      - name: Generate checksums
+        id: checksums
+        run: |
+          cd dist
+          sha256sum *.tar.gz *.zip > checksums.txt
+          for target in darwin-amd64 darwin-arm64 linux-amd64 linux-arm64; do
+            checksum=$(sha256sum "uuid-${target}.tar.gz" | awk '{print $1}')
+            key=$(echo "${target}" | tr '-' '_' | tr '[:lower:]' '[:upper:]')
+            echo "${key}_SHA256=${checksum}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/*.tar.gz
+            dist/*.zip
+            dist/checksums.txt
+
+      - name: Update Homebrew tap
+        env:
+          TAP_GITHUB_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+          DARWIN_AMD64_SHA256: ${{ steps.checksums.outputs.DARWIN_AMD64_SHA256 }}
+          DARWIN_ARM64_SHA256: ${{ steps.checksums.outputs.DARWIN_ARM64_SHA256 }}
+          LINUX_AMD64_SHA256: ${{ steps.checksums.outputs.LINUX_AMD64_SHA256 }}
+          LINUX_ARM64_SHA256: ${{ steps.checksums.outputs.LINUX_ARM64_SHA256 }}
+        run: |
+          git clone "https://x-access-token:${TAP_GITHUB_TOKEN}@github.com/ericfialkowski/homebrew-tap.git" tap
+          mkdir -p tap/Formula
+
+          python3 << 'PYEOF'
+          import os
+
+          version = os.environ['VERSION']
+          repo = "https://github.com/ericfialkowski/uuid-cl"
+          tag = f"v{version}"
+
+          lines = [
+            'class Uuid < Formula',
+            '  desc "CLI tool for generating UUIDs, CUIDs, NanoIDs, ULIDs, XIDs, and MongoDB ObjectIDs"',
+            f'  homepage "{repo}"',
+            f'  version "{version}"',
+            '  license "MIT"',
+            '',
+            '  on_macos do',
+            '    if Hardware::CPU.arm?',
+            f'      url "{repo}/releases/download/{tag}/uuid-darwin-arm64.tar.gz"',
+            f'      sha256 "{os.environ["DARWIN_ARM64_SHA256"]}"',
+            '    else',
+            f'      url "{repo}/releases/download/{tag}/uuid-darwin-amd64.tar.gz"',
+            f'      sha256 "{os.environ["DARWIN_AMD64_SHA256"]}"',
+            '    end',
+            '  end',
+            '',
+            '  on_linux do',
+            '    if Hardware::CPU.arm?',
+            f'      url "{repo}/releases/download/{tag}/uuid-linux-arm64.tar.gz"',
+            f'      sha256 "{os.environ["LINUX_ARM64_SHA256"]}"',
+            '    else',
+            f'      url "{repo}/releases/download/{tag}/uuid-linux-amd64.tar.gz"',
+            f'      sha256 "{os.environ["LINUX_AMD64_SHA256"]}"',
+            '    end',
+            '  end',
+            '',
+            '  def install',
+            '    bin.install "uuid"',
+            '  end',
+            '',
+            '  test do',
+            '    assert_match(/[0-9a-f-]{36}/, shell_output("#{bin}/uuid"))',
+            '  end',
+            'end',
+            '',
+          ]
+
+          with open('tap/Formula/uuid.rb', 'w') as f:
+              f.write('\n'.join(lines))
+          PYEOF
+
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/uuid.rb
+          git commit -m "Update uuid to v${VERSION}"
+          git push
